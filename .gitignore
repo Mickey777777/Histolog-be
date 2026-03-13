@@ -60,3 +60,17 @@ out/
 # virtual machine crash logs
 hs_err_pid*
 replay_pid*
+
+### Environment ###
+.env
+.env.*
+!.env.example
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### H2 Database ###
+*.db
+*.mv.db
+*.trace.db
