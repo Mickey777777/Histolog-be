@@ -15,6 +15,13 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C004", "Server Error"),
     INVALID_REQUEST_BODY(HttpStatus.BAD_REQUEST, "C005", "Invalid Request Body"),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "C006", "Invalid Request"),
+
+    // User
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "User Not Found"),
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "Email is already in use"),
+    DUPLICATE_USERNAME(HttpStatus.CONFLICT, "U003", "Username is already in use"),
+    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "U004", "Invalid Password"),
+
     ;
 
     private final HttpStatus status;
