@@ -1,18 +1,15 @@
 package com.example.histologbe.controller;
 
-import com.example.histologbe.dto.user.UserLoginRequest;
-import com.example.histologbe.dto.user.UserLoginResponse;
-import com.example.histologbe.dto.user.UserSignUpRequest;
-import com.example.histologbe.dto.user.UserSignUpResponse;
+import com.example.histologbe.dto.user.*;
 import com.example.histologbe.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,5 +27,20 @@ public class AuthController {
     public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody UserLoginRequest request) {
         UserLoginResponse response = authService.login(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/google/initiate")
+    public void initiateGoogleLogin(@RequestParam String appRedirect,
+                                    HttpServletResponse response) throws IOException {
+        String googleAuthUrl = authService.buildGoogleAuthUrl(appRedirect);
+        response.sendRedirect(googleAuthUrl);
+    }
+
+    @GetMapping("/google/callback")
+    public void handleGoogleCallback(@RequestParam String code,
+                                     @RequestParam String state,
+                                     HttpServletResponse response) throws IOException {
+        String redirectUrl = authService.handleGoogleCallback(code, state);
+        response.sendRedirect(redirectUrl);
     }
 }

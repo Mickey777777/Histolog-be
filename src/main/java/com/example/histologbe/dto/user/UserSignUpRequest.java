@@ -1,5 +1,6 @@
 package com.example.histologbe.dto.user;
 
+import com.example.histologbe.domain.user.AuthProvider;
 import com.example.histologbe.domain.user.User;
 import com.example.histologbe.domain.user.UserRole;
 import jakarta.validation.constraints.NotBlank;
@@ -29,6 +30,7 @@ public class UserSignUpRequest {
                 .username(this.username)
                 .email(this.email)
                 .passwordHash(encodedPassword)
+                .provider(AuthProvider.LOCAL)
                 .role(UserRole.USER)
                 .build();
     }

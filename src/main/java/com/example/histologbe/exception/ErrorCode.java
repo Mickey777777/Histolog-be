@@ -21,7 +21,7 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "Email is already in use"),
     DUPLICATE_USERNAME(HttpStatus.CONFLICT, "U003", "Username is already in use"),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "U004", "Invalid Password"),
-
+    INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "U005", "Invalid Google Token"),
     ;
 
     private final HttpStatus status;
