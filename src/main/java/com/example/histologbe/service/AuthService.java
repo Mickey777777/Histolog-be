@@ -167,7 +167,7 @@ public class AuthService {
             String email = payload.getEmail();
             String name = (String) payload.get("name");
 
-            Optional<User> existingUser = userRepository.findByProviderId(providerId);
+            Optional<User> existingUser = userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, providerId);
             if (existingUser.isPresent()) {
                 return existingUser.get();
             }
@@ -254,6 +254,8 @@ public class AuthService {
         String providerId = (String) response.get("id");
         String email = (String) response.get("email");
         String name = (String) response.get("name");
+
+        // TODO: 중복 유저이름 검증 추가
 
         User user = userRepository.findByProviderAndProviderId(AuthProvider.NAVER, providerId)
                 .orElseGet(() -> userRepository.save(User.builder()
