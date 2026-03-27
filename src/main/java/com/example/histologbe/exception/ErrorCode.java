@@ -22,10 +22,10 @@ public enum ErrorCode {
     DUPLICATE_USERNAME(HttpStatus.CONFLICT, "U003", "Username is already in use"),
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "U004", "Invalid Password"),
     INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "U005", "Invalid Google Token"),
+    INVALID_NAVER_TOKEN(HttpStatus.UNAUTHORIZED, "U006", "Invalid Naver Token"),
     ;
 
     private final HttpStatus status;
     private final String code;
     private final String message;
 }
-
