@@ -187,6 +187,7 @@ public class AuthService {
 
     // GET /api/auth/naver/initiate
     public String buildNaverAuthUrl(String appRedirect) {
+        // TODO: appRedirect 허용 주소 검증 추가
         String state = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(appRedirect.getBytes(StandardCharsets.UTF_8));
 
@@ -201,6 +202,7 @@ public class AuthService {
     @Transactional
     @SuppressWarnings("unchecked")
     public String handleNaverCallback(String code, String state) {
+        // TODO: state 디코딩 후 appRedirect 재검증 추가
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -255,7 +257,10 @@ public class AuthService {
         String email = (String) response.get("email");
         String name = (String) response.get("name");
 
+        // TODO: providerId, email, name null/blank 처리 추가
         // TODO: 중복 유저이름 검증 추가
+        // TODO: username fallback 생성 로직 추가
+        // TODO: email 미동의 사용자 처리 정책 추가
 
         User user = userRepository.findByProviderAndProviderId(AuthProvider.NAVER, providerId)
                 .orElseGet(() -> userRepository.save(User.builder()
