@@ -43,4 +43,19 @@ public class AuthController {
         String redirectUrl = authService.handleGoogleCallback(code, state);
         response.sendRedirect(redirectUrl);
     }
+
+    @GetMapping("/naver/initiate")
+    public void initiateNaverLogin(@RequestParam String appRedirect,
+                                   HttpServletResponse response) throws IOException {
+        String naverAuthUrl = authService.buildNaverAuthUrl(appRedirect);
+        response.sendRedirect(naverAuthUrl);
+    }
+
+    @GetMapping("/naver/callback")
+    public void handleNaverCallback(@RequestParam String code,
+                                    @RequestParam String state,
+                                    HttpServletResponse response) throws IOException {
+        String redirectUrl = authService.handleNaverCallback(code, state);
+        response.sendRedirect(redirectUrl);
+    }
 }

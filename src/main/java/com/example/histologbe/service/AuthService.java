@@ -8,11 +8,14 @@ import com.example.histologbe.dto.user.*;
 import com.example.histologbe.exception.CustomException;
 import com.example.histologbe.exception.ErrorCode;
 import com.example.histologbe.repository.UserRepository;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import org.apache.tomcat.util.json.JSONParser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,6 +52,15 @@ public class AuthService {
 
     @Value("${GOOGLE_CALLBACK_URI}")
     private String googleCallbackUri;
+
+    @Value("${NAVER_CLIENT_ID}")
+    private String naverClientId;
+
+    @Value("${NAVER_CLIENT_SECRET}")
+    private String naverClientSecret;
+
+    @Value("${NAVER_CALLBACK_URI}")
+    private String naverCallbackUri;
 
     // POST /api/auth/signup
     @Transactional
@@ -137,7 +149,7 @@ public class AuthService {
         return appRedirect + "?token=" + accessToken;
     }
 
-    // id_token 검증 및 유저 생성/조회 공통 로직
+
     private User processGoogleIdToken(String idTokenString) {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                 new NetHttpTransport(),
@@ -171,5 +183,95 @@ public class AuthService {
         } catch (GeneralSecurityException | IOException e) {
             throw new CustomException(ErrorCode.INVALID_GOOGLE_TOKEN);
         }
+    }
+
+    // GET /api/auth/naver/initiate
+    public String buildNaverAuthUrl(String appRedirect) {
+        String state = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(appRedirect.getBytes(StandardCharsets.UTF_8));
+
+        return "https://nid.naver.com/oauth2.0/authorize"
+                + "?response_type=code"
+                + "&client_id=" + naverClientId
+                + "&redirect_uri=" + URLEncoder.encode(naverCallbackUri, StandardCharsets.UTF_8)
+                + "&state=" + state;
+    }
+
+    // GET /api/auth/naver/callback
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public String handleNaverCallback(String code, String state) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", naverClientId);
+        params.add("client_secret", naverClientSecret);
+        params.add("code", code);
+        params.add("redirect_uri", naverCallbackUri);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        Map<String, Object> tokenResponse = restTemplate.postForObject(
+                "https://nid.naver.com/oauth2.0/token",
+                request,
+                Map.class
+        );
+
+        if (tokenResponse == null || !tokenResponse.containsKey("access_token")) {
+            throw new CustomException(ErrorCode.INVALID_NAVER_TOKEN);
+        }
+
+        String providerAccessToken = (String) tokenResponse.get("access_token");
+
+        headers = new HttpHeaders();
+        headers.setBearerAuth(providerAccessToken);
+        HttpEntity<Void> userInfoRequest = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> userInfoResponse = restTemplate.exchange(
+                "https://openapi.naver.com/v1/nid/me",
+                HttpMethod.GET,
+                userInfoRequest,
+                Map.class
+        );
+
+        Map<String, Object> body = userInfoResponse.getBody();
+        if(body == null){
+            throw new CustomException(ErrorCode.INVALID_NAVER_TOKEN);
+        }
+
+        Object tmp = body.get("response");
+
+        if(!(tmp instanceof Map)){
+            throw new CustomException(ErrorCode.INVALID_NAVER_TOKEN);
+        }
+
+        Map<?, ?> response = (Map<?, ?>) tmp;
+
+        String providerId = (String) response.get("id");
+        String email = (String) response.get("email");
+        String name = (String) response.get("name");
+
+        User user = userRepository.findByProviderAndProviderId(AuthProvider.NAVER, providerId)
+                .orElseGet(() -> userRepository.save(User.builder()
+                        .username(name)
+                        .email(email)
+                        .provider(AuthProvider.NAVER)
+                        .providerId(providerId)
+                        .role(UserRole.USER)
+                        .build()));
+
+        user.setLastLoginAt(LocalDateTime.now());
+
+        String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getUsername());
+
+        String appRedirect = new String(
+                Base64.getUrlDecoder().decode(state),
+                StandardCharsets.UTF_8
+        );
+        return appRedirect + "?token=" + accessToken;
     }
 }
