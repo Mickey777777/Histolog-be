@@ -8,14 +8,11 @@ import com.example.histologbe.dto.user.*;
 import com.example.histologbe.exception.CustomException;
 import com.example.histologbe.exception.ErrorCode;
 import com.example.histologbe.repository.UserRepository;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.util.json.JSONParser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +29,7 @@ import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -61,6 +59,9 @@ public class AuthService {
 
     @Value("${NAVER_CALLBACK_URI}")
     private String naverCallbackUri;
+
+    @Value("${app.allowed-redirects}")
+    private List<String> allowedRedirects;
 
     // POST /api/auth/signup
     @Transactional
@@ -98,6 +99,7 @@ public class AuthService {
 
     // GET /api/auth/google/initiate
     public String buildGoogleAuthUrl(String appRedirect) {
+        validateRedirect(appRedirect);
         String state = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(appRedirect.getBytes(StandardCharsets.UTF_8));
         return "https://accounts.google.com/o/oauth2/v2/auth"
@@ -146,6 +148,7 @@ public class AuthService {
                 Base64.getUrlDecoder().decode(state),
                 StandardCharsets.UTF_8
         );
+        validateRedirect(appRedirect);
         return appRedirect + "?token=" + accessToken;
     }
 
@@ -165,7 +168,7 @@ public class AuthService {
             GoogleIdToken.Payload payload = googleIdToken.getPayload();
             String providerId = payload.getSubject();
             String email = payload.getEmail();
-            String name = (String) payload.get("name");
+            String username = extractUsername(email, (String) payload.get("name"));
 
             Optional<User> existingUser = userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, providerId);
             if (existingUser.isPresent()) {
@@ -173,7 +176,7 @@ public class AuthService {
             }
 
             return userRepository.save(User.builder()
-                    .username(name)
+                    .username(username)
                     .email(email)
                     .provider(AuthProvider.GOOGLE)
                     .providerId(providerId)
@@ -187,7 +190,7 @@ public class AuthService {
 
     // GET /api/auth/naver/initiate
     public String buildNaverAuthUrl(String appRedirect) {
-        // TODO: appRedirect 허용 주소 검증 추가
+        validateRedirect(appRedirect);
         String state = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(appRedirect.getBytes(StandardCharsets.UTF_8));
 
@@ -202,7 +205,6 @@ public class AuthService {
     @Transactional
     @SuppressWarnings("unchecked")
     public String handleNaverCallback(String code, String state) {
-        // TODO: state 디코딩 후 appRedirect 재검증 추가
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
@@ -255,16 +257,12 @@ public class AuthService {
 
         String providerId = (String) response.get("id");
         String email = (String) response.get("email");
-        String name = (String) response.get("name");
+        String username = extractUsername(email, (String) response.get("name"));
 
-        // TODO: providerId, email, name null/blank 처리 추가
-        // TODO: 중복 유저이름 검증 추가
-        // TODO: username fallback 생성 로직 추가
-        // TODO: email 미동의 사용자 처리 정책 추가
 
         User user = userRepository.findByProviderAndProviderId(AuthProvider.NAVER, providerId)
                 .orElseGet(() -> userRepository.save(User.builder()
-                        .username(name)
+                        .username(username)
                         .email(email)
                         .provider(AuthProvider.NAVER)
                         .providerId(providerId)
@@ -279,6 +277,22 @@ public class AuthService {
                 Base64.getUrlDecoder().decode(state),
                 StandardCharsets.UTF_8
         );
+        validateRedirect(appRedirect);
         return appRedirect + "?token=" + accessToken;
+    }
+
+    private void validateRedirect(String appRedirect) {
+        boolean allowed = allowedRedirects.stream()
+                .anyMatch(appRedirect::startsWith);
+        if (!allowed) {
+            throw new CustomException(ErrorCode.INVALID_REDIRECT_URI);
+        }
+    }
+
+    private String extractUsername(String email, String fallbackName) {
+        if (email != null && email.contains("@")) {
+            return email.substring(0, email.indexOf('@'));
+        }
+        return fallbackName;
     }
 }

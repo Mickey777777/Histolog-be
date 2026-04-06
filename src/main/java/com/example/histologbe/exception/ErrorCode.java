@@ -23,6 +23,7 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "U004", "Invalid Password"),
     INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "U005", "Invalid Google Token"),
     INVALID_NAVER_TOKEN(HttpStatus.UNAUTHORIZED, "U006", "Invalid Naver Token"),
+    INVALID_REDIRECT_URI(HttpStatus.BAD_REQUEST, "U007", "Invalid Redirect URI"),
     ;
 
     private final HttpStatus status;
