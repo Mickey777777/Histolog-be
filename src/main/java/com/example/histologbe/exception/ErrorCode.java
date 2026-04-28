@@ -24,6 +24,9 @@ public enum ErrorCode {
     INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "U005", "Invalid Google Token"),
     INVALID_NAVER_TOKEN(HttpStatus.UNAUTHORIZED, "U006", "Invalid Naver Token"),
     INVALID_REDIRECT_URI(HttpStatus.BAD_REQUEST, "U007", "Invalid Redirect URI"),
+
+    // Auth
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "Invalid or missing token"),
     ;
 
     private final HttpStatus status;
