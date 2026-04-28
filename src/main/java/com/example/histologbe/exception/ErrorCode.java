@@ -24,6 +24,15 @@ public enum ErrorCode {
     INVALID_GOOGLE_TOKEN(HttpStatus.UNAUTHORIZED, "U005", "Invalid Google Token"),
     INVALID_NAVER_TOKEN(HttpStatus.UNAUTHORIZED, "U006", "Invalid Naver Token"),
     INVALID_REDIRECT_URI(HttpStatus.BAD_REQUEST, "U007", "Invalid Redirect URI"),
+
+    // Auth
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "Invalid or missing token"),
+
+    // Chat
+    CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "Chat Not Found"),
+
+    // AI
+    AI_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI001", "AI Server Error"),
     ;
 
     private final HttpStatus status;
