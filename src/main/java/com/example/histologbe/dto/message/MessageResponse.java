@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class MessageResponse {
-    private String response;
+    private String message;
 
     public static MessageResponse from(Message message) {
         return MessageResponse.builder()
-                .response(message.getMessage())
+                .message(message.getMessage())
                 .build();
     }
 }
