@@ -30,6 +30,9 @@ public enum ErrorCode {
 
     // Chat
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "Chat Not Found"),
+
+    // AI
+    AI_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI001", "AI Server Error"),
     ;
 
     private final HttpStatus status;
