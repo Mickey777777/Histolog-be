@@ -14,28 +14,28 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ChatListResponse {
 
-    private List<SessionItem> sessions;
+    private List<ChatItem> chats;
 
     public static ChatListResponse from(List<Chat> chats) {
         return new ChatListResponse(
-                chats.stream().map(SessionItem::from).collect(Collectors.toList())
+                chats.stream().map(ChatItem::from).collect(Collectors.toList())
         );
     }
 
     @Getter
     @AllArgsConstructor
-    public static class SessionItem {
+    public static class ChatItem {
 
-        @JsonProperty("session_id")
-        private UUID sessionId;
+        @JsonProperty("chat_id")
+        private UUID chatId;
 
         private String title;
 
         @JsonProperty("created_at")
         private LocalDateTime createdAt;
 
-        public static SessionItem from(Chat chat) {
-            return new SessionItem(chat.getChatId(), null, chat.getCreatedAt());
+        public static ChatItem from(Chat chat) {
+            return new ChatItem(chat.getChatId(), null, chat.getCreatedAt());
         }
     }
 }

@@ -20,6 +20,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -72,5 +73,16 @@ public class MessageService {
         Message assistantMessage = messageRepository.save(newAssistantMessage);
 
         return MessageResponse.from(assistantMessage);
+    }
+
+    // GET /api/chats/{chatId}/messages
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getMessages(UUID chatId, UUID userId) {
+        chatRepository.findByUserUserIdAndChatId(userId, chatId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CHAT_NOT_FOUND));
+
+        return messageRepository.findByChatChatIdOrderByCreatedAtAsc(chatId).stream()
+                .map(MessageResponse::from)
+                .toList();
     }
 }
