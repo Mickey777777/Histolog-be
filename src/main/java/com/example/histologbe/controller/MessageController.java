@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +21,23 @@ public class MessageController {
 
     private final JwtProvider jwtProvider;
     private final MessageService messageService;
+
+    @GetMapping("/{chatId}/messages")
+    public ResponseEntity<List<MessageResponse>> getMessages(
+            @PathVariable UUID chatId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        if (!authorization.startsWith("Bearer ")) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+        String token = authorization.substring(7);
+        if (!jwtProvider.isTokenValid(token)) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+        UUID userId = jwtProvider.getUserId(token);
+
+        return ResponseEntity.ok(messageService.getMessages(chatId, userId));
+    }
 
     @PostMapping("/{chatId}/messages")
     public ResponseEntity<MessageResponse> sendMessage(
