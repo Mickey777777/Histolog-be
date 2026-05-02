@@ -2,11 +2,13 @@ package com.example.histologbe.service;
 
 import com.example.histologbe.config.JwtProvider;
 import com.example.histologbe.domain.user.AuthProvider;
+import com.example.histologbe.domain.user.RefreshToken;
 import com.example.histologbe.domain.user.User;
 import com.example.histologbe.domain.user.UserRole;
 import com.example.histologbe.dto.user.*;
 import com.example.histologbe.exception.CustomException;
 import com.example.histologbe.exception.ErrorCode;
+import com.example.histologbe.repository.RefreshTokenRepository;
 import com.example.histologbe.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -27,11 +29,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +37,7 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
@@ -94,7 +93,41 @@ public class AuthService {
         user.setLastLoginAt(LocalDateTime.now());
 
         String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getUsername());
-        return UserLoginResponse.from(user, accessToken);
+        String refreshToken = jwtProvider.createRefreshToken(user.getUserId(), user.getUsername());
+
+        refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .token(refreshToken)
+                .expiresAt(LocalDateTime.now().plusDays(7))
+                .build());
+
+
+        return UserLoginResponse.from(user, accessToken, refreshToken);
+    }
+
+    // POST /api/auth/refresh
+    @Transactional
+    public UserLoginResponse refresh(RefreshRequest refreshRequest) {
+        if(!jwtProvider.isTokenValid(refreshRequest.getRefreshToken())) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        UUID requestUserId = jwtProvider.getUserId(refreshRequest.getRefreshToken());
+        RefreshToken saved = refreshTokenRepository.findByToken(refreshRequest.getRefreshToken())
+                .orElseThrow(() -> new CustomException(ErrorCode.EXPIRED_TOKEN));
+
+        if(!requestUserId.equals(saved.getUser().getUserId())){
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+        
+        User user = saved.getUser();
+        String newAccessToken = jwtProvider.createAccessToken(user.getUserId(), user.getUsername());
+        String newRefreshToken = jwtProvider.createRefreshToken(user.getUserId(), user.getUsername());
+
+        saved.rotate(newRefreshToken, LocalDateTime.now().plusDays(7));
+
+        return UserLoginResponse.from(user, newAccessToken, newRefreshToken);
     }
 
     // GET /api/auth/google/initiate
@@ -143,13 +176,21 @@ public class AuthService {
         user.setLastLoginAt(LocalDateTime.now());
 
         String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getUsername());
+        String refreshToken = jwtProvider.createRefreshToken(user.getUserId(), user.getUsername());
+
+        refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .token(refreshToken)
+                .expiresAt(LocalDateTime.now().plusDays(7))
+                .build());
 
         String appRedirect = new String(
                 Base64.getUrlDecoder().decode(state),
                 StandardCharsets.UTF_8
         );
         validateRedirect(appRedirect);
-        return appRedirect + "?token=" + accessToken;
+        return appRedirect + "?token=" + accessToken + "&refresh_token=" + refreshToken;
     }
 
 
@@ -272,13 +313,22 @@ public class AuthService {
         user.setLastLoginAt(LocalDateTime.now());
 
         String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getUsername());
+        String refreshToken = jwtProvider.createRefreshToken(user.getUserId(), user.getUsername());
+
+        refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .token(refreshToken)
+                .expiresAt(LocalDateTime.now().plusDays(7))
+                .build());
+
 
         String appRedirect = new String(
                 Base64.getUrlDecoder().decode(state),
                 StandardCharsets.UTF_8
         );
         validateRedirect(appRedirect);
-        return appRedirect + "?token=" + accessToken;
+        return appRedirect + "?token=" + accessToken + "&refresh_token=" + refreshToken;
     }
 
     private void validateRedirect(String appRedirect) {

@@ -27,6 +27,7 @@ public enum ErrorCode {
 
     // Auth
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A001", "Invalid or missing token"),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "A002", "Expired Token"),
 
     // Chat
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "M001", "Chat Not Found"),

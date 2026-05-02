@@ -15,6 +15,7 @@ import java.io.IOException;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
     private final AuthService authService;
 
     @PostMapping("/signup")
@@ -26,6 +27,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody UserLoginRequest request) {
         UserLoginResponse response = authService.login(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<UserLoginResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        UserLoginResponse response = authService.refresh(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

@@ -18,10 +18,14 @@ public class UserLoginResponse {
     @JsonProperty("access_token")
     private String accessToken;
 
-    public static UserLoginResponse from(User user, String accessToken) {
+    @JsonProperty("refresh_token")
+    private String refreshToken;
+
+    public static UserLoginResponse from(User user, String accessToken, String refreshToken) {
         return UserLoginResponse.builder()
                 .username(user.getUsername())
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 }
