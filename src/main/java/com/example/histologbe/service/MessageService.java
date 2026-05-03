@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
@@ -21,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -39,7 +41,7 @@ public class MessageService {
             .build();
 
     // POST /api/chats/{chatId}/messages
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MessageResponse sendMessage(MessageRequest messageRequest, UUID chatId, UUID userId) {
         Chat chat = chatRepository.findByUserUserIdAndChatId(userId, chatId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_NOT_FOUND));
@@ -51,7 +53,12 @@ public class MessageService {
                 .build();
         messageRepository.save(newUserMessage);
 
-        String jsonBody = "{\"message\":\"" + messageRequest.getMessage().replace("\"", "\\\"") + "\"}";
+        String jsonBody;
+        try {
+            jsonBody = objectMapper.writeValueAsString(Map.of("message", messageRequest.getMessage()));
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.AI_SERVER_ERROR);
+        }
         HttpRequest aiRequest = HttpRequest.newBuilder()
                 .uri(URI.create(aiServerUrl + "/histolog/ai/query"))
                 .header("Content-Type", "application/json")
