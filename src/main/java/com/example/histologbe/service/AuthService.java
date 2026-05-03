@@ -117,6 +117,10 @@ public class AuthService {
         RefreshToken saved = refreshTokenRepository.findByToken(refreshRequest.getRefreshToken())
                 .orElseThrow(() -> new CustomException(ErrorCode.EXPIRED_TOKEN));
 
+        if (saved.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.EXPIRED_TOKEN);
+        }
+
         if(!requestUserId.equals(saved.getUser().getUserId())){
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
