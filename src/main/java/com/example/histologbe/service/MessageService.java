@@ -3,12 +3,14 @@ package com.example.histologbe.service;
 import com.example.histologbe.domain.chat.Chat;
 import com.example.histologbe.domain.message.Message;
 import com.example.histologbe.domain.message.MessageType;
+import com.example.histologbe.domain.user.User;
 import com.example.histologbe.dto.message.MessageRequest;
 import com.example.histologbe.dto.message.MessageResponse;
 import com.example.histologbe.exception.CustomException;
 import com.example.histologbe.exception.ErrorCode;
 import com.example.histologbe.repository.ChatRepository;
 import com.example.histologbe.repository.MessageRepository;
+import com.example.histologbe.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +37,10 @@ public class MessageService {
 
     private final ChatRepository chatRepository;
     private final MessageRepository messageRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private static final long TOKEN_LIMIT = 10_000L;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .build();
@@ -45,6 +50,13 @@ public class MessageService {
     public MessageResponse sendMessage(MessageRequest messageRequest, UUID chatId, UUID userId) {
         Chat chat = chatRepository.findByUserUserIdAndChatId(userId, chatId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CHAT_NOT_FOUND));
+
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getTokenUsage() >= TOKEN_LIMIT) {
+            throw new CustomException(ErrorCode.TOKEN_LIMIT_EXCEEDED);
+        }
 
         Message newUserMessage = Message.builder()
                 .chat(chat)
@@ -65,12 +77,18 @@ public class MessageService {
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
                 .build();
         String content;
+        Long usage;
         try {
             HttpResponse<String> aiResponse = httpClient.send(aiRequest, HttpResponse.BodyHandlers.ofString());
             content = objectMapper.readTree(aiResponse.body()).get("answer").asText();
+            usage = objectMapper.readTree(aiResponse.body()).get("usage").asLong();
         } catch (Exception e) {
             throw new CustomException(ErrorCode.AI_SERVER_ERROR);
         }
+
+        Long userUsage = user.getTokenUsage();
+        user.setTokenUsage(userUsage + usage);
+        userRepository.save(user);
 
         Message newAssistantMessage = Message.builder()
                 .chat(chat)

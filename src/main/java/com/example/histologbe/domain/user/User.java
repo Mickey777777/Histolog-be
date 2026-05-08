@@ -41,6 +41,9 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private UserRole role;
 
+    @Column(name = "token_usage", nullable = false)
+    private Long tokenUsage;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;

@@ -34,6 +34,9 @@ public enum ErrorCode {
 
     // AI
     AI_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI001", "AI Server Error"),
+
+    // Token
+    TOKEN_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "T001", "Token limit exceeded")
     ;
 
     private final HttpStatus status;
