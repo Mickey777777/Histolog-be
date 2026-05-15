@@ -1,8 +1,10 @@
 package com.example.histologbe.controller;
 
+import com.example.histologbe.dto.chat.ChatCreateRequest;
 import com.example.histologbe.dto.chat.ChatCreateResponse;
 import com.example.histologbe.dto.chat.ChatListResponse;
 import com.example.histologbe.service.ChatService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +21,9 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping
-    public ResponseEntity<ChatCreateResponse> createChat() {
+    public ResponseEntity<ChatCreateResponse> createChat(@Valid @RequestBody ChatCreateRequest request) {
         UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.status(HttpStatus.CREATED).body(chatService.createChat(userId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(chatService.createChat(request, userId));
     }
 
     @GetMapping

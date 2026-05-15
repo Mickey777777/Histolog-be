@@ -2,6 +2,7 @@ package com.example.histologbe.service;
 
 import com.example.histologbe.domain.chat.Chat;
 import com.example.histologbe.domain.user.User;
+import com.example.histologbe.dto.chat.ChatCreateRequest;
 import com.example.histologbe.dto.chat.ChatCreateResponse;
 import com.example.histologbe.dto.chat.ChatListResponse;
 import com.example.histologbe.exception.CustomException;
@@ -23,12 +24,13 @@ public class ChatService {
 
     // POST /api/chats
     @Transactional
-    public ChatCreateResponse createChat(UUID userId){
+    public ChatCreateResponse createChat(ChatCreateRequest request, UUID userId){
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         Chat newChat = Chat.builder()
                 .user(user)
+                .king(request.getKing())
                 .build();
 
         Chat savedChat = chatRepository.save(newChat);

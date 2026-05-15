@@ -67,7 +67,9 @@ public class MessageService {
 
         String jsonBody;
         try {
-            jsonBody = objectMapper.writeValueAsString(Map.of("message", messageRequest.getMessage()));
+            jsonBody = objectMapper.writeValueAsString(Map.of(
+                    "message", messageRequest.getMessage(),
+                    "king", chat.getKing().name()));
         } catch (Exception e) {
             throw new CustomException(ErrorCode.AI_SERVER_ERROR);
         }
